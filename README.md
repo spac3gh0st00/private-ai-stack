@@ -2,19 +2,19 @@
 
 ## Why This Exists
 
-Running a local LLM should feel like having a private, always-available AI 
+Running a local LLM should feel like having a private, always-available AI
 that nobody else can touch. Out of the box it doesn't work that way.
 
-Install Ollama and fire it up — it works great. But it's completely open. 
-No password, no authentication, no access control. Anything on your machine 
-or local network that knows the default port can talk to your GPU, read your 
-prompts, and burn your VRAM. Most tutorials stop right after "it works" and 
+Install Ollama and fire it up — it works great. But it's completely open.
+No password, no authentication, no access control. Anything on your machine
+or local network that knows the default port can talk to your GPU, read your
+prompts, and burn your VRAM. Most tutorials stop right after "it works" and
 never mention this.
 
-This repo is the next step — what you build after "it works" when you actually 
-care about keeping it yours.
+This repo is the next step — what you build after "it works" when you
+actually care about keeping it yours.
 
-What you get:
+**What you get:**
 - **One bearer token** that gates every client — browser, IDE, Telegram bot
 - **Ollama hidden** behind an auth proxy on a non-standard port
 - **HTTPS** for your local web UI, no plaintext on the LAN
@@ -22,24 +22,17 @@ What you get:
 - **VS Code integration** via Continue for a local Copilot experience
 - **Game mode scripts** to free VRAM instantly when you need your GPU back
 
-Everything runs on your hardware. Your prompts never leave your machine. 
+Everything runs on your hardware. Your prompts never leave your machine.
 No API bills, no data collection, no rate limits.
 
-Tested on a Ryzen 9 9900X + RTX 5070 Ti on Windows 11 — but the patterns 
+Tested on a Ryzen 9 9900X + RTX 5070 Ti on Windows 11 — but the patterns
 apply to any GPU-equipped Windows machine.
 
-> A hardened, multi-client local LLM setup for Windows. **One bearer token gates every client** — Telegram bot, browser UI, IDE — with proper isolation, HTTPS, secrets in env vars, and a per-user whitelist. Includes the troubleshooting journey, because most of the friction in "just run AI locally" is the part nobody writes about.
-
-![Open WebUI running locally](screenshots/01-openwebui.png)
-
-
-Built around bare-metal Ollama with Docker for everything else, accessible via Open WebUI, a Telegram bot, and Continue in VS Code — all gated behind a single bearer token.
-
-This guide doubles as a learning resource. It documents not just **what** to do, but **why** each piece is the way it is, and includes a detailed troubleshooting section covering the genuinely surprising issues encountered along the way.
-
-> ⚠️ **Threat model note**: This setup is designed for a single-user home machine. The protections defend against (a) accidental exposure to the local network, (b) misbehaving software on the host scanning ports, and (c) eventually-leaked credentials in source code. It is **not** a hardened multi-tenant production deployment.
+![Open WebUI running locally](https://github.com/user-attachments/assets/d77f5842-85c2-4683-aa84-8dc452f30719)
 
 ---
+
+## Table of Contents
 
 ## Table of Contents
 
