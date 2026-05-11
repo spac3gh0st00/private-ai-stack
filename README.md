@@ -28,7 +28,9 @@ No API bills, no data collection, no rate limits.
 Tested on a Ryzen 9 9900X + RTX 5070 Ti on Windows 11 — but the patterns
 apply to any GPU-equipped Windows machine.
 
-![Open WebUI running locally](https://github.com/user-attachments/assets/d77f5842-85c2-4683-aa84-8dc452f30719)
+| Open WebUI | Telegram | VS Code Continue |
+|:---:|:---:|:---:|
+| ![Open WebUI](screenshots/01-openwebui.png) | ![Telegram Bot](screenshots/03-telegram-bot.png) | *screenshot coming soon* |
 
 ---
 
