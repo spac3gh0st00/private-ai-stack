@@ -1,6 +1,10 @@
-# Hardening a Local LLM Stack: Auth, Isolation, and Defense in Depth
+# 🔐 private-ai-stack
 
-A complete walkthrough for taking a "works on my machine" Ollama setup and turning it into a properly authenticated, multi-client local AI stack on Windows. Built around bare-metal Ollama with Docker for everything else, accessible via Open WebUI, a Telegram bot, and Continue in VS Code — all gated behind a single bearer token.
+> A hardened, multi-client local LLM setup for Windows. **One bearer token gates every client** — Telegram bot, browser UI, IDE — with proper isolation, HTTPS, secrets in env vars, and a per-user whitelist. Includes the troubleshooting journey, because most of the friction in "just run AI locally" is the part nobody writes about.
+
+![Open WebUI running locally — replace screenshots/01-openwebui-chat.png with your own](https://placehold.co/1200x600/0f172a/94a3b8?text=%F0%9F%92%AC+Open+WebUI+chat+in+action%0A%28replace+screenshots%2F01-openwebui-chat.png%29&font=source-code-pro)
+
+Built around bare-metal Ollama with Docker for everything else, accessible via Open WebUI, a Telegram bot, and Continue in VS Code — all gated behind a single bearer token.
 
 This guide doubles as a learning resource. It documents not just **what** to do, but **why** each piece is the way it is, and includes a detailed troubleshooting section covering the genuinely surprising issues encountered along the way.
 
@@ -75,45 +79,36 @@ The pattern this repo demonstrates:
 
 ## Architecture Overview
 
-```
-                ┌─────────────────────────────────────────────────────┐
-                │                      WINDOWS HOST                   │
-                │                                                     │
-                │  ┌──────────────────┐                                │
-                │  │  Ollama (native) │  127.0.0.1:11500              │
-                │  │  GPU acceleration│  ← only Caddy reaches here     │
-                │  └────────▲─────────┘                                │
-                │           │                                          │
-                │  ┌────────┴──────────────────────────────────────┐   │
-                │  │              DOCKER (llm-network bridge)       │   │
-                │  │                                                │   │
-                │  │  ┌─────────────┐    ┌──────────────────┐      │   │
-                │  │  │ ollama-auth │◄──►│  open-webui      │      │   │
-                │  │  │ (Caddy)     │    │  (chat backend)  │      │   │
-                │  │  │ :11434      │    │  :8080 internal  │      │   │
-                │  │  └──────▲──────┘    └────────▲─────────┘      │   │
-                │  │         │                    │                 │   │
-                │  │         │            ┌───────┴────────┐        │   │
-                │  │         │            │  nginx-proxy   │        │   │
-                │  │         │            │  :80, :443     │        │   │
-                │  │         │            │  HTTPS, headers│        │   │
-                │  │         │            └────────▲───────┘        │   │
-                │  └─────────┼─────────────────────┼────────────────┘   │
-                │            │                     │                    │
-                │            │ 127.0.0.1:11434     │ 0.0.0.0:443        │
-                │            │ (Caddy port mapped) │ (LAN-accessible)   │
-                │            │                     │                    │
-                │  ┌─────────┴───┐  ┌────────────┐ │                    │
-                │  │ Continue    │  │ Telegram   │ │                    │
-                │  │ (VS Code)   │  │ bot        │ │                    │
-                │  └─────────────┘  └────────────┘ │                    │
-                │                                  │                    │
-                └──────────────────────────────────┼────────────────────┘
-                                                   │
-                                          ┌────────┴───────┐
-                                          │   Browser      │
-                                          │ (host or LAN)  │
-                                          └────────────────┘
+```mermaid
+flowchart TB
+    Browser["🌐 Browser<br/>host or LAN"]
+    Continue["💻 Continue<br/>VS Code"]
+    Bot["💬 Telegram Bot<br/>host process"]
+
+    subgraph host["🖥️ Windows Host"]
+        direction TB
+        subgraph docker["🐳 Docker · llm-network bridge"]
+            direction TB
+            Nginx["<b>nginx-proxy</b><br/>:80 → :443 redirect<br/>HTTPS + security headers<br/>Login rate limit"]
+            WebUI["<b>open-webui</b><br/>:8080 internal<br/>WEBUI_AUTH=true<br/>Signups disabled"]
+            Caddy["🔐 <b>ollama-auth Caddy</b><br/>:11434 ← only path in<br/>Bearer token required"]
+        end
+        Ollama["🦙 <b>Ollama native</b><br/>127.0.0.1:11500<br/>GPU acceleration<br/>Localhost only"]
+    end
+
+    Browser -->|"HTTPS :443"| Nginx
+    Nginx --> WebUI
+    WebUI -->|"host.docker.internal:11434<br/>+ Bearer token"| Caddy
+
+    Continue -->|"localhost:11434<br/>+ Bearer token"| Caddy
+    Bot -->|"localhost:11434<br/>+ Bearer token"| Caddy
+
+    Caddy ==>|"host.docker.internal:11500<br/>Authorization header stripped"| Ollama
+
+    style Caddy fill:#15803d,color:#ffffff,stroke:#22c55e,stroke-width:2px
+    style Ollama fill:#c2410c,color:#ffffff,stroke:#f97316,stroke-width:2px
+    style Nginx fill:#1e3a8a,color:#ffffff,stroke:#3b82f6
+    style WebUI fill:#1e3a8a,color:#ffffff,stroke:#3b82f6
 ```
 
 **Key design decisions:**
@@ -285,6 +280,8 @@ In Open WebUI: **Profile (top right) → Admin Panel → Settings → Connection
 - Click the gear icon, paste your bearer key into the API Key field
 - Save and refresh. Your models should appear.
 
+![Open WebUI connection settings — replace screenshots/02-openwebui-connections.png with your own](https://placehold.co/1000x500/0f172a/94a3b8?text=%E2%9A%99%EF%B8%8F+Admin+%E2%86%92+Settings+%E2%86%92+Connections%0A%28replace+screenshots%2F02-openwebui-connections.png%29&font=source-code-pro)
+
 > **Why `host.docker.internal:11434` and not `ollama-auth:11434`?** See [Troubleshooting #6](#6-the-docker-bridge-403-mystery). Briefly: traffic from Open WebUI's container directly to Caddy's container via the Docker bridge network was returning 403s in our testing, while the same traffic via the host loopback worked fine. Probably a Docker Desktop on Windows networking quirk.
 
 ---
@@ -292,6 +289,8 @@ In Open WebUI: **Profile (top right) → Admin Panel → Settings → Connection
 ## The Telegram Bot
 
 The bot lives in [`bot/bot.py`](bot/bot.py). It's a single-file Python application using `python-telegram-bot` and `httpx`.
+
+![Telegram bot conversation — replace screenshots/03-telegram-bot.png with your own](https://placehold.co/900x600/0f172a/94a3b8?text=%F0%9F%92%AC+Telegram+chat+with+your+bot%0A%28replace+screenshots%2F03-telegram-bot.png%29&font=source-code-pro)
 
 ### Step 7a — Install Python dependencies
 
@@ -348,6 +347,8 @@ If unauthorized users message it, you'll see `[REJECTED]` lines in the bot's ter
 ## Continue (VS Code)
 
 Continue is a free, open-source VS Code extension that gives you a coding-focused chat panel, tab autocomplete, and inline edits — all powered by your local models.
+
+![Continue in VS Code — replace screenshots/04-continue-vscode.png with your own](https://placehold.co/1200x700/0f172a/94a3b8?text=%F0%9F%92%BB+Continue+coding+with+local+model%0A%28replace+screenshots%2F04-continue-vscode.png%29&font=source-code-pro)
 
 ### Step 8 — Configure Continue
 
@@ -631,7 +632,7 @@ The 35B-a3b MoE is the standout here — despite being too big for VRAM, the 3B 
 ## Repo Contents
 
 ```
-local-llm-stack/
+private-ai-stack/
 ├── README.md                           # this file
 ├── configs/
 │   ├── Caddyfile                       # bearer-token auth proxy config
@@ -643,8 +644,12 @@ local-llm-stack/
 ├── scripts/
 │   ├── llm-start.bat                   # bring stack up (game mode off)
 │   └── llm-stop.bat                    # take stack down (game mode on)
+├── screenshots/
+│   └── README.md                       # what each screenshot should show
 ├── docker-compose.yml                  # alternative compose-based setup
-└── .env.example                        # env var template — copy to .env and fill in
+├── .env.example                        # env var template — copy to .env and fill in
+├── .gitignore
+└── LICENSE
 ```
 
 ---

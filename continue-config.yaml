@@ -1,0 +1,68 @@
+# =====================================================================
+# Continue (VS Code extension) config
+# =====================================================================
+# Drop this file at: C:\Users\<YourUsername>\.continue\config.yaml
+#
+# Each model points at Caddy (not Ollama directly) and includes the
+# bearer token. Continue automatically wraps apiKey as
+# "Authorization: Bearer <key>" on each request — pass the raw key,
+# NO "Bearer " prefix.
+#
+# Replace YOUR_BEARER_KEY with your real key in all four spots below.
+# =====================================================================
+
+name: Local Config
+version: 1.0.0
+schema: v1
+
+models:
+  # Big coding model — for heavy refactors, multi-file edits, etc.
+  # Slower but smarter. Use this when quality matters more than latency.
+  - name: Qwen3.6 35B (Coding)
+    provider: ollama
+    model: qwen3.6:35b-a3b
+    apiBase: http://localhost:11434
+    apiKey: YOUR_BEARER_KEY
+    roles:
+      - chat
+      - edit
+      - apply
+
+  # Fast general model — for quick questions and snappy responses.
+  - name: Qwen3 14B (Fast)
+    provider: ollama
+    model: qwen3:14b
+    apiBase: http://localhost:11434
+    apiKey: YOUR_BEARER_KEY
+    roles:
+      - chat
+      - edit
+
+  # Reasoning model — for "think this through step by step" tasks.
+  # Slower because it reasons explicitly before answering.
+  - name: DeepSeek R1 14B (Analysis)
+    provider: ollama
+    model: deepseek-r1:14b
+    apiBase: http://localhost:11434
+    apiKey: YOUR_BEARER_KEY
+    roles:
+      - chat
+
+# Tab autocomplete — must be a fast model, this fires on every keystroke pause
+tabAutocomplete:
+  provider: ollama
+  model: qwen3:14b
+  apiBase: http://localhost:11434
+  apiKey: YOUR_BEARER_KEY
+  disable: false
+
+# Context providers — what info Continue can pull when you ask questions.
+# These let it reference your code, terminal output, problems panel, etc.
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase

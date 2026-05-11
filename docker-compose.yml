@@ -1,0 +1,95 @@
+# =====================================================================
+# docker-compose.yml — alternative to the docker run commands in README
+# =====================================================================
+# If you'd rather manage the three containers as a unit instead of
+# running each via docker run, drop this file in your project root and
+# use:
+#
+#   docker compose up -d              # start everything
+#   docker compose down               # stop everything
+#   docker compose logs -f             # tail all logs
+#   docker compose restart nginx-proxy # restart one service
+#
+# Before first run:
+#   1. Copy .env.example to .env and fill in your real values
+#   2. Make sure the volume paths exist (C:\DockerData\caddy, etc.)
+#   3. Generate the self-signed cert (see README Step 5)
+# =====================================================================
+
+services:
+  # Caddy auth proxy — bearer-token gate in front of Ollama
+  ollama-auth:
+    image: caddy:2-alpine
+    container_name: ollama-auth
+    restart: unless-stopped
+    networks:
+      - llm-network
+    ports:
+      # Bound to localhost only — Windows Firewall isn't the only line of defense
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - C:\DockerData\caddy\Caddyfile:/etc/caddy/Caddyfile:ro
+      - C:\DockerData\caddy\logs:/var/log/caddy
+    extra_hosts:
+      # Required so the container can reach Ollama on the host via the
+      # gateway IP — equivalent to --add-host on docker run
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Open WebUI — the browser-based chat interface
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    networks:
+      - llm-network
+    # No ports exposed — only reachable through nginx-proxy
+    volumes:
+      - C:\DockerData\open-webui:/app/backend/data
+    environment:
+      # host.docker.internal works reliably; ollama-auth (Docker DNS name)
+      # had networking quirks on Windows. See README Troubleshooting #6.
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      WEBUI_AUTH: "true"
+      ENABLE_SIGNUP: "false"
+      DEFAULT_USER_ROLE: pending
+      ENABLE_COMMUNITY_SHARING: "false"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # nginx — HTTPS termination, security headers, anti-brute-force
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    networks:
+      - llm-network
+    ports:
+      # Bound to all interfaces so you can reach it from your phone on
+      # the LAN. Change to "127.0.0.1:443:443" for localhost-only access.
+      - "443:443"
+      - "80:80"
+    volumes:
+      - C:\DockerData\nginx\conf\nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - C:\DockerData\nginx\certs:/etc/nginx/certs:ro
+    depends_on:
+      - open-webui
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  llm-network:
+    driver: bridge
+    # Using a custom network gives containers DNS-based discovery and
+    # isolates them from any default-network containers you might run.
