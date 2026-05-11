@@ -2,8 +2,8 @@
 
 > A hardened, multi-client local LLM setup for Windows. **One bearer token gates every client** — Telegram bot, browser UI, IDE — with proper isolation, HTTPS, secrets in env vars, and a per-user whitelist. Includes the troubleshooting journey, because most of the friction in "just run AI locally" is the part nobody writes about.
 
-![Open WebUI running locally — replace screenshots/01-openwebui-chat.png with your own](https://placehold.co/1200x600/0f172a/94a3b8?text=%F0%9F%92%AC+Open+WebUI+chat+in+action%0A%28replace+screenshots%2F01-openwebui-chat.png%29&font=source-code-pro)
-)
+![Open WebUI running locally](screenshots/01-openwebui.png)
+
 
 Built around bare-metal Ollama with Docker for everything else, accessible via Open WebUI, a Telegram bot, and Continue in VS Code — all gated behind a single bearer token.
 
@@ -281,7 +281,7 @@ In Open WebUI: **Profile (top right) → Admin Panel → Settings → Connection
 - Click the gear icon, paste your bearer key into the API Key field
 - Save and refresh. Your models should appear.
 
-![Open WebUI connection settings — replace screenshots/02-openwebui-connections.png with your own](https://placehold.co/1000x500/0f172a/94a3b8?text=%E2%9A%99%EF%B8%8F+Admin+%E2%86%92+Settings+%E2%86%92+Connections%0A%28replace+screenshots%2F02-openwebui-connections.png%29&font=source-code-pro)
+![Open WebUI connection settings](screenshots/02-connections.png)
 
 > **Why `host.docker.internal:11434` and not `ollama-auth:11434`?** See [Troubleshooting #6](#6-the-docker-bridge-403-mystery). Briefly: traffic from Open WebUI's container directly to Caddy's container via the Docker bridge network was returning 403s in our testing, while the same traffic via the host loopback worked fine. Probably a Docker Desktop on Windows networking quirk.
 
@@ -291,7 +291,7 @@ In Open WebUI: **Profile (top right) → Admin Panel → Settings → Connection
 
 The bot lives in [`bot/bot.py`](bot/bot.py). It's a single-file Python application using `python-telegram-bot` and `httpx`.
 
-![Telegram bot conversation — replace screenshots/03-telegram-bot.png with your own](https://placehold.co/900x600/0f172a/94a3b8?text=%F0%9F%92%AC+Telegram+chat+with+your+bot%0A%28replace+screenshots%2F03-telegram-bot.png%29&font=source-code-pro)
+![Telegram bot conversation](screenshots/03-telegram-bot.png)
 
 ### Step 7a — Install Python dependencies
 
