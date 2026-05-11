@@ -2,7 +2,7 @@
 
 > A hardened, multi-client local LLM setup for Windows. **One bearer token gates every client** — Telegram bot, browser UI, IDE — with proper isolation, HTTPS, secrets in env vars, and a per-user whitelist. Includes the troubleshooting journey, because most of the friction in "just run AI locally" is the part nobody writes about.
 
-![Open WebUI running locally — replace screenshots/01-openwebui-chat.png with your own](<https://github.com/user-attachments/assets/d77f5842-85c2-4683-aa84-8dc452f30719" />
+![Open WebUI running locally — replace screenshots/01-openwebui-chat.png with your own](https://placehold.co/1200x600/0f172a/94a3b8?text=%F0%9F%92%AC+Open+WebUI+chat+in+action%0A%28replace+screenshots%2F01-openwebui-chat.png%29&font=source-code-pro)
 )
 
 Built around bare-metal Ollama with Docker for everything else, accessible via Open WebUI, a Telegram bot, and Continue in VS Code — all gated behind a single bearer token.
