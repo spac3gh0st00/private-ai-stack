@@ -34,8 +34,6 @@ apply to any GPU-equipped Windows machine.
 
 ## Table of Contents
 
-## Table of Contents
-
 1. [What You'll Build](#what-youll-build)
 2. [Why This Setup](#why-this-setup)
 3. [Prerequisites](#prerequisites)
